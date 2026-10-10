@@ -1,10 +1,12 @@
 #main file 
+# This file controls the full game flow: menu screens, level selection, gameplay loop, and user actions.
 import pygame
-import os 
-import sys 
-from timer import Timer 
+import os
+import sys
+from theme import BACKGROUND
+from timer import Timer
 from board import Board
-from Options import options, background_image, background_options
+from Options import options
 from Button import Button
 from AStarSolver import AStarSolver, show_hint
 BASE_DIR = os.path.dirname(__file__)
@@ -16,10 +18,10 @@ width, height = 800, 600  #window dimension
 screen = pygame.display.set_mode((width,height))  #create the surface
 pygame.display.set_caption("Think Smarter") 
 
-selected_background = "Stars"  # selected background for initial
-background = pygame.transform.scale(background_image[selected_background], (width,height)) #scale the background image with the dimensions of the screen 
 
 
+
+# Create a reusable font object so text can be drawn consistently across the game screens.
 def get_Font(size=24 ,bold=False ,italic=False, font_name=None):   
     font_name = font_name or pygame.font.match_font("arial")  #defualt font or arial 
     font = pygame.font.SysFont(font_name, size) # create font
@@ -27,25 +29,12 @@ def get_Font(size=24 ,bold=False ,italic=False, font_name=None):
     font.set_italic(italic) #allows italics if mentioned 
     return font 
 
-def scrolling_background(selected_background,x,y):  #background scrolling effect
-    if selected_background == "White_Stars":  #if background is the option white/stars
-        return 0,0  #dont scroll 
-    else:  #otherwise 
-        y+= 1   #move background 1 pixel down
-        if y >= height: 
-            y=0   #when scrolled to full, height its reset
-        return x,y
-    
 
+# Show the instructions screen explaining the controls and objective.
 def information():
     done = False
-    Neon_Image_Button = pygame.image.load(os.path.join(BASE_DIR,"images", "Neon_Button.png")).convert_alpha()
-    Neon_Image_Button = pygame.transform.scale(Neon_Image_Button, (200,50)) 
     while not done:
-        x,y = 0,0 
-        x,y = scrolling_background(selected_background,x,y)  #create the scrolling background
-        screen.blit(background,(0,y))
-        screen.blit(background, (0,y-height))
+        screen.fill(BACKGROUND)
 
         info_font = get_Font(24)
         information1= info_font.render(("To play this game you have to get the tiles in order"), True, (255,255,255))
@@ -56,7 +45,7 @@ def information():
         screen.blit(information2, (100,130))
         screen.blit(information3, (100,160))
 
-        Back_B=Button(600,500,"Back",font=get_Font(35),base_color=(255,0,255),hovering_color=(255,255,255), image = Neon_Image_Button)
+        Back_B=Button(600,500,"Back",font=get_Font(35),base_color=(255,0,255),hovering_color=(255,255,255))
         Back_B.draw(screen)
 
         Menu_Mouse_Pos = pygame.mouse.get_pos()
@@ -78,24 +67,29 @@ def information():
 
 
 
+# Start screen shown before the user enters the main game menu.
 def Menu():
-    x=0
-    y=0
     while True:
-        x , y = scrolling_background(selected_background, x,y )  #constantly updates a scroll
-        #draw two scrolling background for seamless looping 
-        screen.blit(background, (0,y)) 
-        screen.blit(background, (0,y-height))   
+        screen.fill(BACKGROUND)   
 
         #title is created and positioned 
-        font = get_Font(40, bold=True, font_name=None)   
-        heading = font.render(( "Welcome To Number slide puzzle"), True, (255,255,255))       
-        heading_rect= heading.get_rect(center=(400,100))
-        #text is created and postioned 
-        font2 = get_Font(40, italic=True, font_name=None)
-        text1 = font2.render(("Press Any Key To Start"), True, (255,255,255))
-        text2_rect = text1.get_rect(center=(400,300))
-        #drawn so they can be displayed 
+        font = get_Font(48, bold=True)
+        heading = font.render(
+            "NUMBER SLIDE PUZZLE",
+            True,
+            (255, 255, 255)
+            )
+        heading_rect = heading.get_rect(center=(400, 200))
+
+        # Subtitle
+        font2 = get_Font(24)
+        text1 = font2.render(
+            "Press any key to start",
+            True,
+            (148, 163, 184)
+        )
+        text2_rect = text1.get_rect(center=(400, 300))
+
         screen.blit(heading, heading_rect)
         screen.blit(text1, text2_rect)
         
@@ -103,38 +97,46 @@ def Menu():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                sys.exit
+                sys.exit()
             if event.type == pygame.KEYDOWN: #if any key is pressed
                 create_Menus() #move to main menu
         pygame.display.update()  #updates the display screen
 
 
+# Main level-selection menu that leads to gameplay, settings, or quitting.
 def create_Menus(): 
-    global background, selected_background  #access global variable backgorund 
     Done=False  
-    x=0
-    y=0
+
     #neon buttons  image are loaded and scaled 
-    Neon_Image_Button = pygame.image.load(os.path.join(BASE_DIR,"images", "Neon_Button.png")).convert_alpha()
-    Neon_Image_Button = pygame.transform.scale(Neon_Image_Button, (200,50)) 
     while not Done:
         #scrolling effect again 
-        x , y = scrolling_background(selected_background, x,y )
-        screen.blit(background, (0,y))
-        screen.blit(background, (0,y-height))
+        screen.fill(BACKGROUND)
 
 
 
         #create neon buttons for menu
-        Play_B= Button(300,200,"Play", font=get_Font(80),base_color=(255,0,0), hovering_color=(255,255,255), image=Neon_Image_Button)
-        Option_B = Button(300,300, "Option", font = get_Font(80), base_color=(0,0,128), hovering_color=(255,255,255), image=Neon_Image_Button)
-        Quit_B = Button(300,400, "Quit",font=get_Font(80), base_color=(255,0,0), hovering_color=(255,255,255), image= Neon_Image_Button)
+        Play_B = Button(
+            300, 200, "Play",
+            font=get_Font(30),
+            base_color=(59, 130, 246),
+            hovering_color=(96, 165, 250)
+            )
+
+        Option_B = Button(
+        300, 300, "Options",
+        font=get_Font(30),
+        base_color=(59, 130, 246),
+        hovering_color=(96, 165, 250)
+        )
+
+        Quit_B = Button(
+        300, 400, "Quit",
+        font=get_Font(30),
+        base_color=(59, 130, 246),
+        hovering_color=(96, 165, 250)
+        )
         #updates button colour based on mouse position
         Menu_Mouse_Pos = pygame.mouse.get_pos()
-        Play_B.color(Menu_Mouse_Pos, (0,0,0), (255,255,255))
-        Option_B.color(Menu_Mouse_Pos, (255,0,0), (255,255,255))
-        Quit_B.color(Menu_Mouse_Pos,(0,0,0), (255,255,255))
-
         #draw button on screen
         Play_B.draw(screen)
         Option_B.draw(screen)
@@ -148,9 +150,7 @@ def create_Menus():
                 if Play_B.check_for_input(Menu_Mouse_Pos): # check if its hovered on  play 
                     play() #goes play procedure which get the user to set diffuclty 
                 if Option_B.check_for_input(Menu_Mouse_Pos):
-                    selected_background = options() # go to option menu basically goes to setting screen
-                    background  = pygame.transform.scale(background_image[selected_background], (width,height) ) #update the background after you leave option
-                    
+                    options() # go to option menu basically goes to setting screen
                 if Quit_B.check_for_input(Menu_Mouse_Pos):
                     pygame.quit()
                     sys.exit()
@@ -159,17 +159,14 @@ def create_Menus():
                 sys.exit()
         pygame.display.update()
 
-#diffculty selection menu
+# Difficulty selection menu shown after the player chooses to start a game.
 def play():
     Done=False
-    x=0
-    y=0
-    Neon_Image_Button = pygame.image.load(os.path.join(BASE_DIR,"images", "Neon_Button.png")).convert_alpha()
-    Neon_Image_Button = pygame.transform.scale(Neon_Image_Button, (200,50))
+
+    
     while not Done:
-        x , y = scrolling_background(selected_background, x,y )
-        screen.blit(background, (0,y))
-        screen.blit(background, (0,y-height))
+        
+        screen.fill(BACKGROUND)
         #title text
         font3= get_Font(24, bold=True, font_name=None)
         text3= font3.render("Think Smarter", True, (255,255,255))
@@ -178,14 +175,25 @@ def play():
 
         #creates diffculty buttons 
 
-        Back_B=Button(600,500,"Back",font=get_Font(35),base_color=(255,0,255),hovering_color=(255,255,255), image = Neon_Image_Button)
-        Back_B.draw(screen)
+        
 
-        Easy_B= Button(300,200,"Easy(3*3)", font=get_Font(35), base_color=(255,0,172), hovering_color=(255,255,255), image=Neon_Image_Button )
-        Medium_B = Button(300,300,"Medium(4*4)", font=get_Font(35),base_color=(255,000,172), hovering_color = (255,255,255), image=Neon_Image_Button)
-        Hard_B = Button(300,400, "Hard(5*5)",font=get_Font(35), base_color=(255,0,175), hovering_color=(255,255,255),image=Neon_Image_Button)
-        Custom_B= Button(300,500,"Custom", font=get_Font(35), base_color=(255,255,255), hovering_color=(255,255,255), image=Neon_Image_Button )
+        Back_B = Button(600, 500, "Back", font=get_Font(25),
+                base_color=(59, 130, 246),
+                hovering_color=(96, 165, 250))
+        Easy_B = Button(300, 200, "Easy (3x3)", font=get_Font(25),
+                base_color=(59, 130, 246),
+                hovering_color=(96, 165, 250))
+        Medium_B = Button(300, 300, "Medium (4x4)", font=get_Font(25),
+            base_color=(59, 130, 246),
+            hovering_color=(96, 165, 250))
+        Hard_B = Button(300, 400, "Hard (5x5)", font=get_Font(25),
+            base_color=(59, 130, 246),
+            hovering_color=(96, 165, 250))
+        Custom_B = Button(300, 500, "Custom", font=get_Font(25),
+            base_color=(59, 130, 246),
+            hovering_color=(96, 165, 250))
         #draws buttons
+        Back_B.draw(screen)
         Easy_B.draw(screen)
         Hard_B.draw(screen)
         Medium_B.draw(screen)
@@ -234,23 +242,20 @@ def play():
                 
 
 
+# Main game loop that handles the board state, timer, controls, and win conditions.
 def Game(tile_size,game_size,screen): #arguments are passed for the board 
     
     Done=False
-    x=0
-    y=0
     
     timer = Timer()  #timer is initialised 
 
-     #first move is made is set to false 
+    #first move is made is set to false 
     #loads neon button images 
 
-    Neon_Button_Image= pygame.image.load(os.path.join(BASE_DIR,"images", "Neon_Button.png")).convert_alpha()
-    Neon_Button_Image = pygame.transform.scale(Neon_Button_Image, (200,50))
+    
 
     
-    info_image_button = pygame.image.load(os.path.join(BASE_DIR, "images","information.png")).convert_alpha()
-    info_image_button = pygame.transform.scale(info_image_button,(64,64))
+    
     # initalises components of the puzzle board based on diffculty or custom
     board=Board(game_size,tile_size, screen)
     game_won= False #game one is set to false
@@ -259,34 +264,67 @@ def Game(tile_size,game_size,screen): #arguments are passed for the board
     #main Game loop
     while not Done:  
         #updates background 
-        x , y = scrolling_background(selected_background, x,y )
-        screen.blit(background, (0,y))
-        screen.blit(background, (0,y-height))
+        screen.fill(BACKGROUND)
+        
+
+        # Right-side control panel
+        pygame.draw.rect(
+            screen,
+            (30, 41, 59),
+            (570, 20, 210, 560),
+            border_radius=16
+        )
+
         
         #draws the game board 
+    
         board.draw_grid()
         board.draw_tiles()
         #creates and displays the buttons need for the game  
-        Back_B=Button(600,500,"Back",font=get_Font(35),base_color=(255,0,255),hovering_color=(255,255,255), image = Neon_Button_Image)
-        Back_B.draw(screen)
 
-        info_button = Button(650,50,"",font=get_Font(20),base_color=None, hovering_color=None, image= info_image_button, width = 64, height = 64 )
-        info_button.draw(screen)
+        info_button = Button(
+                590, 50, "Info",
+                font=get_Font(24),
+                width=170, height=45
+            )
 
+        Reset_button = Button(
+            590, 110, "Reset",
+            font=get_Font(24),
+            width=170, height=45
+            )
 
+        hint_button = Button(
+            590, 170, "Hint",
+            font=get_Font(24),
+            width=170, height=45
+        )
 
-        Reset_button = Button(600,100,"Reset", font=get_Font(35),base_color=(255,0,0), hovering_color=(255,255,255), image=Neon_Button_Image)
-        Reset_button.draw(screen)
+        solve_button = Button(
+            590, 230, "Solve",
+            font=get_Font(24),
+            width=170, height=45
+    )
 
+        Shuffle_button = Button(
+            590, 410, "Shuffle",
+            font=get_Font(24),
+            width=170, height=45
+        )
 
-        Shuffle_button = Button(600,400,"Shuffle", font=get_Font(35),base_color=(255,0,0), hovering_color=(255,255,255), image=Neon_Button_Image)
-        Shuffle_button.draw(screen)
+        Back_B = Button(
+            590, 470, "Back",
+            font=get_Font(24),
+            width=170, height=45
+        )
 
-        solve_button = Button(600,200,"Solve", font=get_Font(35),base_color=(255,0,0), hovering_color=(255,255,255), image=Neon_Button_Image)
-        solve_button.draw(screen)
-        hint_button = Button(600,150,"Hint", font=get_Font(35),base_color=(255,0,0), hovering_color=(255,255,255), image=Neon_Button_Image)
-        hint_button.draw(screen)
         #draws time components for the game 
+        Back_B.draw(screen)
+        Shuffle_button.draw(screen)
+        solve_button.draw(screen)
+        hint_button.draw(screen)
+        info_button.draw(screen)
+        Reset_button.draw(screen)
         time_display= timer.time()  #Time is loaded from timer file/module 
         font = pygame.font.Font(None,24) #sets font
         #displays the time  
@@ -347,7 +385,7 @@ def Game(tile_size,game_size,screen): #arguments are passed for the board
                         for state in solution: #goes/loops through each of the steps/states
                             board.set_grid(state)  # Updates the grid to the new state 
                             pygame.time.wait(300)  # Wait a bit for animation effect
-                            screen.fill((0,0,0)) #set the whole screen to black 
+                            screen.fill(BACKGROUND) #set the whole screen to black 
                             board.draw_grid() #draws the grid again
                             board.draw_tiles() #draws the tile 
                             pygame.display.update()
@@ -360,7 +398,15 @@ def Game(tile_size,game_size,screen): #arguments are passed for the board
                 if event.button == 1:  #if left button is clicked 
                     button_clicked  = False  # button clicked is flagged to check if UI button are pressed or not
     
-                    for button in [Back_B, Shuffle_button, solve_button, hint_button]:  #  for each of the buttons 
+                    for button in [
+                                    Back_B,
+                                    Reset_button,
+                                    Shuffle_button,
+                                    solve_button,
+                                    hint_button,
+                                    info_button
+                    ]:
+                        #  for each of the buttons 
                         
                         if button.check_for_input(Menu_Mouse_Pos):  #if mouse is over the button
                             button_clicked = True #set the button click to True 
@@ -407,10 +453,6 @@ def Game(tile_size,game_size,screen): #arguments are passed for the board
                         if board.check_win(): #if won
                             game_won = True #game_won  is set to true 
                             timer.stop_time() #timer stops 
-           
-           
-           
-            
                 
 
             if event.type == pygame.QUIT:

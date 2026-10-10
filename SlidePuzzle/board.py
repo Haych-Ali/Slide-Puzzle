@@ -3,6 +3,8 @@ import pygame
 import random
 import os
 
+# Board logic for the sliding puzzle.
+# This class stores the tile state, handles movement rules, and renders the board on screen.
 class Board:
     def __init__(self,game_size, tile_size, screen ):
         self.game_size= game_size   #size of the board  for (3x3) it would be 3 
@@ -11,40 +13,89 @@ class Board:
         self.grid = self.create_grid() #creates the grid 
         self.moves_made = 0      #counts number of moves mades
         self.best_moves = 0    #stores best move
+        # Board styling
+        self.board_x = 100
+        self.board_y = 150
+        self.tile_gap = 6
+
+        self.tile_color = (51, 65, 85)
+        self.tile_hover_color = (59, 130, 246)
+        self.tile_text_color = (255, 255, 255)
+        self.empty_color = (15, 23, 42)
 
 
     def create_grid(self):
         grid = list(range(1,self.game_size**2))+[0]    #creates a list from 1 to (Games_size^2) -1 so 1 - 8 and adds a 0 to indicate an empty tile 
         return grid 
-        
+
     def draw_grid(self):
-        for row in range(self.game_size + 1):   #for row in range (3+1) so 0-4 so 4 lines with 
-            pygame.draw.line(self.screen, (255,255,255),   #255,255,255 for the colour of the line , screen for the pygame surface
-                             (250+ (row * self.tile_size), 150),   # the coordinates of the starting line (tile size is positon of the tile) row is incremented 
-                             (250+(row * self.tile_size), 150+(self.game_size * self.tile_size))) # this is to indicate the position of the last line 
-            #drwa lines for the row 
-        
-        for col in range(self.game_size+1):  #does the same for the columns but inversed co ordinates 
-            pygame.draw.line(self.screen,(255,255,255), 
-                             (250,(col*self.tile_size)+150), 
-                             (250+ (self.game_size*self.tile_size),(col * self.tile_size)+150))      #draw lines for the columns 
+        board_width = self.game_size * self.tile_size
+
+        board_rect = pygame.Rect(
+            self.board_x - 8,
+            self.board_y - 8,
+            board_width + 16,
+            board_width + 16
+        )
+
+        pygame.draw.rect(
+            self.screen,
+            (30, 41, 59),
+            board_rect,
+            border_radius=16
+        )
     
+    
+    # Draw each visible tile and highlight tiles that can legally be moved.
     def draw_tiles(self):
-            for row in range(self.game_size):  #so each row 0-2 which would be the coordinates
-                for col in range(self.game_size): #so for each column which i used to indcate the coordinate
-                    i = row * self.game_size + col      #convert the coordiantes to 1d so (0,0) 0*3*0 so first index 0 till you reach 3 
-                    tile_value = self.grid[i] #this gets the tiles at the index so index 0 would be 1 
-                    
-                    if tile_value != 0:  #while its not empty draw the tiles 
-                        x=250+col*self.tile_size #calcautes the  posiotn x coordiante of the tile 
-                        y=150+row*self.tile_size  #clculates the positonn y coordiate of the tile 
-                        pygame.draw.rect(self.screen, (255,255,255),(x,y, self.tile_size, self.tile_size)) #draws the box with the x and y being the coordiante for the top left then the tiles size being the width and height of the rectanlge 
-                        pygame.draw.rect(self.screen, (0,0,0), (x,y,self.tile_size, self.tile_size),3) # and this is for the border of the tile showng 3 as the thickness of the nlack outlien 
-                        
-                        font=pygame.font.Font(None, 70)
-                        text = font.render(str(tile_value), True, (190,0,250))
-                        text_rect = text.get_rect(center=(x+self.tile_size/2, y + self.tile_size // 2))
-                        self.screen.blit(text, text_rect)
+        mouse_pos = pygame.mouse.get_pos()
+        empty_row, empty_col = self.get_empty_tile()
+
+        for row in range(self.game_size):
+            for col in range(self.game_size):
+
+                i = row * self.game_size + col
+                tile_value = self.grid[i]
+
+                x = self.board_x + col * self.tile_size
+                y = self.board_y + row * self.tile_size
+
+                tile_rect = pygame.Rect(
+                    x + self.tile_gap,
+                    y + self.tile_gap,
+                    self.tile_size - self.tile_gap * 2,
+                    self.tile_size - self.tile_gap * 2
+                )
+
+                if tile_value != 0:
+
+                    is_adjacent = (
+                        abs(row - empty_row) +
+                        abs(col - empty_col) == 1
+                    )
+
+                    if tile_rect.collidepoint(mouse_pos) and is_adjacent:
+                        color = self.tile_hover_color
+                    else:
+                        color = self.tile_color
+
+                    pygame.draw.rect(
+                        self.screen,
+                        color,
+                        tile_rect,
+                        border_radius=12
+                    )
+
+                    font_size = max(18, min(60, int(self.tile_size * 0.55)))
+                    font = pygame.font.Font(None, font_size)
+
+                    text = font.render(
+                        str(tile_value),
+                        True,
+                        self.tile_text_color
+                    )
+                    text_rect = text.get_rect(center=tile_rect.center)
+                    self.screen.blit(text, text_rect)
 
     def get_empty_tile(self):
         empty_tile = self.grid.index(0)     # find the index of 0 which would be 8
@@ -52,6 +103,7 @@ class Board:
         col = empty_tile % self.game_size    # same for column
         return row,col  #return these two co ordinates 
     
+    # Check whether the empty space can move in the requested direction.
     def check_move(self, direction):
         empty_row ,empty_col = self.get_empty_tile()     # (2,2)
         if direction == "up" and empty_row < self.game_size-1:   #if direction is up and if # empty row = 2 is less than 2 which is false #as empty tile isnt at the top its at the bottom im moving tiles adjacent to it 
@@ -99,11 +151,21 @@ class Board:
             self.Moves()
     
     #create a mouse handling
+    # Convert a mouse click into a valid tile move on the board.
     def mouse_handling(self, mouse_pos):
         mouse_pos_x,mouse_pos_y = mouse_pos  #gets coordiantes of the mouse posiotion and sets its to each of the varible 
+        local_x = (mouse_pos_x - self.board_x) % self.tile_size
+        local_y = (mouse_pos_y - self.board_y) % self.tile_size
 
-        tile_col = (mouse_pos_x - 250) // self.tile_size # finds the grid coordiatnte using the offset 250 and 150 
-        tile_row = (mouse_pos_y -150)  // self.tile_size  #example  if cicked at (350,250) for 3x3
+        if (
+            local_x < self.tile_gap
+            or local_x >= self.tile_size - self.tile_gap
+            or local_y < self.tile_gap
+            or local_y >= self.tile_size - self.tile_gap
+                ):
+            return False
+        tile_col = (mouse_pos_x - self.board_x) // self.tile_size
+        tile_row = (mouse_pos_y - self.board_y) // self.tile_size  #example  if cicked at (350,250) for 3x3
         # 350 - 250 // 100 = 1 and 250-150// = 1 therofore it would be at row 1 col 1
         if (0<= tile_col<self.game_size and 0<= tile_row <self.game_size): #ensure that its within the board 
             #by evaualting time grid cooridante where it must be bigger or equal to 0 and less or equal to maxium row,col
@@ -153,7 +215,7 @@ class Board:
             if direction == "right":
                 self.Move_Right()
             
-            self.reset_Moves_Made()
+        self.reset_Moves_Made()
 
 
     def check_win(self):
